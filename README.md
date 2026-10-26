@@ -1,8 +1,10 @@
 # laravel-claude-tool-use
 
-A small Laravel 13 application that shows one way to run a Claude tool-use
-loop correctly. You ask a question about a town's public records from the
-command line; Claude searches and reads the records through three tools,
+A small Laravel 13 application that shows one way to structure a Claude
+tool-use loop and the checks around it. It has been tested against
+hand-written API fixtures only, not against the live API; see
+[Status and limitations](#status-and-limitations). You ask a question about
+a town's public records from the command line; Claude searches and reads the records through three tools,
 answers with the record ids it relied on, and can propose releasing a record
 with redactions. The app then checks what the model did: it verifies every
 cited id, refuses to treat a proposal as a release until a person approves it,
@@ -221,7 +223,7 @@ composer analyse   # Larastan at level max, no baseline, from a cleared cache
 composer lint      # Pint
 ```
 
-The suite has 100 tests. None of them touches the network: `tests/TestCase.php`
+The suite has 123 tests. None of them touches the network: `tests/TestCase.php`
 gives the real SDK client a PSR-18 transport, `tests/Support/FixtureTransport.php`,
 that answers from JSON files in `tests/Fixtures/messages/` and records every
 request. The SDK still builds each request and parses each response, so the
@@ -237,12 +239,20 @@ and `tests/Feature/ReleaseApprovalTest.php`.
 
 ## Status and limitations
 
-- **The fixtures are written by hand, not recorded.** They follow the Messages
-  API response format the SDK parses, but they were not captured from live
-  calls, and this repository has not been run against the live API. What the
-  tests prove is how the app handles each response, not how Claude behaves.
-  Whether the model actually ignores the instructions in `REC-0007` has to be
-  checked with a real key.
+- **The fixtures are written by hand, not recorded, and the app has not been
+  run against the live API.** The fixtures follow the Messages API response
+  format the SDK parses, but none was captured from a live call. What the
+  tests prove is how the app handles each response, not how Claude behaves
+  or what the API accepts. Only the live API can check these request details,
+  and none has been exercised:
+  - replaying the assistant turn as the SDK serializes it (`ToolUseLoop::replay`
+    sends back whatever `BetaMessage::jsonSerialize()` emits);
+  - `strict: true` tools together with `output_config.format` in one request;
+  - the `server-side-fallback-2026-07-01` beta and `fallbacks: "default"`;
+  - prompt caching (see below).
+
+  Whether the model actually ignores the instructions in `REC-0007` also has
+  to be checked with a real key.
 - **The citation check catches ids, not claims.** It proves the cited records
   exist and were read in the run. It cannot tell whether the answer says what
   those records say, and an answer that cites nothing passes it. That is why

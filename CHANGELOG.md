@@ -17,5 +17,10 @@ First release.
   `records:reject`, `records:pending` and `records:release` complete the review.
 - Prompt caching on the static tools and system prefix; usage and estimated
   cost logged to `storage/logs/claude-usage-*.log` without prompt content.
-- Question and record text are sanitized and wrapped in delimiters, with an
-  instruction-hardening line in the system prompt.
+- Question, record titles and record text are sanitized and wrapped in
+  delimiters, with an instruction-hardening line in the system prompt.
+- A failed API call ends the run as `api_error`, still logging usage and
+  listing the proposals saved before it; missing credentials and an invalid
+  `CLAUDE_EFFORT` are reported in one line.
+- Overlapping redactions are merged before they are applied, and redaction
+  quotes are matched against the cleaned text the model was shown.
