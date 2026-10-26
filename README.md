@@ -168,9 +168,11 @@ key. Exceptions are logged without function arguments
 (`zend.exception_ignore_args`), so a stack trace cannot carry the start of a
 question either.
 
-**Untrusted text.** The question is wrapped in `<user_question>` and record
-text in `<record_text record_id="...">`. Before wrapping, control and
-invisible formatting characters are removed and `&`, `<` and `>` are escaped,
+**Untrusted text.** The question is wrapped in `<user_question>`, each record
+title in `<record_title record_id="...">` and record text in
+`<record_text record_id="...">`. Before wrapping, control and
+invisible formatting characters are removed and `&`, `<` and `>` are escaped
+(quotes too, inside the `record_id` attribute),
 so text inside a delimiter cannot close it or open another one. The system
 prompt says both are data and lists what to refuse. Model output is stripped of
 terminal escape sequences and console style tags before it is printed.

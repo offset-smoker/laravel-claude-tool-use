@@ -50,7 +50,7 @@ final class GetRecord implements Tool
 
         $content = implode("\n", [
             "record_id: {$record->id}",
-            'title: '.UntrustedText::line($record->title),
+            UntrustedText::title($record->id, $record->title),
             "department: {$record->department->value}",
             "filed_on: {$record->filed_on->toDateString()}",
             UntrustedText::record($record->id, $record->body),

@@ -78,7 +78,7 @@ it('returns a full record inside its delimiter', function () {
 
     expect($result->content)->toBe(implode("\n", [
         'record_id: REC-0008',
-        'title: Snow removal budget summary, winter 2025-26',
+        '<record_title record_id="REC-0008">Snow removal budget summary, winter 2025-26</record_title>',
         'department: public_works',
         'filed_on: 2026-04-30',
         '<record_text record_id="REC-0008">',

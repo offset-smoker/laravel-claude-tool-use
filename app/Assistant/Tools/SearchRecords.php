@@ -98,12 +98,12 @@ final class SearchRecords implements Tool
         $lines = ["{$matches->count()} record(s) matched \"{$echo}\", best match first:"];
         foreach ($matches as $record) {
             $lines[] = sprintf(
-                '- %s | %s | %s | filed %s',
+                '- %s | %s | filed %s',
                 $record->id,
-                UntrustedText::line($record->title),
                 $record->department->value,
                 $record->filed_on->toDateString(),
             );
+            $lines[] = UntrustedText::title($record->id, $record->title);
             $lines[] = UntrustedText::record($record->id, Str::limit($record->body, self::SNIPPET_LENGTH));
         }
 

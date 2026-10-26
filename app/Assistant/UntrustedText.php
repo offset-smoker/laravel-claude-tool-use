@@ -32,14 +32,26 @@ final class UntrustedText
 
     public static function record(string $recordId, string $text): string
     {
-        return '<record_text record_id="'.self::clean($recordId).'">'."\n"
+        return '<record_text record_id="'.self::attribute($recordId).'">'."\n"
             .self::clean($text)."\n</record_text>";
     }
 
-    /** A single line for titles and other short fields. */
+    /** A record title, on one line, inside its own delimiter. */
+    public static function title(string $recordId, string $title): string
+    {
+        return '<record_title record_id="'.self::attribute($recordId).'">'.self::line($title).'</record_title>';
+    }
+
+    /** A single line for short fields such as a search query. */
     public static function line(string $text): string
     {
         return trim((string) preg_replace('/\s+/', ' ', self::clean($text)));
+    }
+
+    /** clean(), with double and single quotes escaped too, for an attribute value. */
+    private static function attribute(string $text): string
+    {
+        return htmlspecialchars(self::line($text), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', double_encode: false);
     }
 
     /**

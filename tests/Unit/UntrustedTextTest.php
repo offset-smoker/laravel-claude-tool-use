@@ -20,7 +20,8 @@ it('replaces invalid UTF-8 instead of dropping the whole text', function () {
 
 it('wraps a question and a record in their delimiters', function () {
     expect(UntrustedText::question('  What changed?  '))->toBe("<user_question>\nWhat changed?\n</user_question>")
-        ->and(UntrustedText::record('REC-0001', 'Body'))->toBe("<record_text record_id=\"REC-0001\">\nBody\n</record_text>");
+        ->and(UntrustedText::record('REC-0001', 'Body'))->toBe("<record_text record_id=\"REC-0001\">\nBody\n</record_text>")
+        ->and(UntrustedText::title('REC-0001', "Pothole\nrepairs"))->toBe('<record_title record_id="REC-0001">Pothole repairs</record_title>');
 });
 
 it('collapses a title onto one line', function () {
@@ -29,4 +30,9 @@ it('collapses a title onto one line', function () {
 
 it('strips terminal escape sequences from model output without escaping it', function () {
     expect(UntrustedText::forTerminal("\e[2J\e]0;title\x07ok <b>\n"))->toBe("[2J]0;titleok <b>\n");
+});
+
+it('escapes double quotes in a delimiter attribute so it cannot be closed early', function () {
+    expect(UntrustedText::record('REC-0001" injected="1', 'Body'))->toStartWith('<record_text record_id="REC-0001&quot; injected=&quot;1">')
+        ->and(UntrustedText::title('REC-0001"', 'T'))->toStartWith('<record_title record_id="REC-0001&quot;">');
 });
