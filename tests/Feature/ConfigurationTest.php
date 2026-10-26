@@ -71,3 +71,10 @@ it('builds a client from the configured key', function () {
 
     expect(app(Client::class)->apiKey)->toBe('sk-ant-configured-in-test');
 });
+
+it('keeps function arguments, such as the question, out of exception traces', function () {
+    $trace = (fn (string $question): string => (new RuntimeException('x'))->getTraceAsString())('Who asked for the pothole repair?');
+
+    expect(ini_get('zend.exception_ignore_args'))->toBe('1')
+        ->and($trace)->not->toContain('Who asked');
+});

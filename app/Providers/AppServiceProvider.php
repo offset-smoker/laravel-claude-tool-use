@@ -21,6 +21,11 @@ final class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // Stack traces in logged exceptions would otherwise carry the first
+        // characters of string arguments, which here include questions and
+        // record text.
+        ini_set('zend.exception_ignore_args', '1');
+
         // Without a key, fall back to the SDK's other credential sources
         // (ANTHROPIC_AUTH_TOKEN, an `ant auth login` profile, workload
         // identity). With none of them, stop before any request is sent.

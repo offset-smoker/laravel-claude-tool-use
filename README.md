@@ -164,7 +164,9 @@ record text and is byte-identical across calls and questions.
 model, stop reason, input, output, cache-write and cache-read tokens, and an
 estimated cost. The recorder is given the response's usage, never the
 messages. A test asserts the log holds no question, record text, answer or API
-key.
+key. Exceptions are logged without function arguments
+(`zend.exception_ignore_args`), so a stack trace cannot carry the start of a
+question either.
 
 **Untrusted text.** The question is wrapped in `<user_question>` and record
 text in `<record_text record_id="...">`. Before wrapping, control and
@@ -207,7 +209,7 @@ composer analyse   # Larastan at level max, no baseline, from a cleared cache
 composer lint      # Pint
 ```
 
-The suite has 99 tests. None of them touches the network: `tests/TestCase.php`
+The suite has 100 tests. None of them touches the network: `tests/TestCase.php`
 gives the real SDK client a PSR-18 transport, `tests/Support/FixtureTransport.php`,
 that answers from JSON files in `tests/Fixtures/messages/` and records every
 request. The SDK still builds each request and parses each response, so the
