@@ -150,8 +150,11 @@ parameters with `LIKE` wildcards escaped.
 **Citations.** The final message uses structured output
 (`output_config.format`) with two fields, `answer` and `cited_record_ids`. An
 answer passes only if every cited id exists in the database, every cited id
-was returned by a tool during this run, and every `REC-nnnn` mentioned in the
-answer text is in the cited list.
+was returned by a tool during this run, and every record id mentioned in the
+answer text is in the cited list. Mentions are matched in any case and with a
+hyphen, any dash, a space or nothing between `REC` and the digits
+(`rec-0004`, `REC 0004`, `REC0004`); a paraphrase such as "record 4" is not
+caught.
 
 **Releases.** `propose_redaction` writes a `pending_releases` row and nothing
 else. No tool approves, the loop never changes a release's status (an

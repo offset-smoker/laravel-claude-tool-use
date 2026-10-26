@@ -12,7 +12,8 @@ use App\Models\Record;
  */
 final class CitationVerifier
 {
-    private const string ID_IN_TEXT = '/\bREC-\d{4}\b/';
+    /** REC-0001 in any case, with a hyphen, any dash, a space or nothing between the parts. */
+    private const string ID_IN_TEXT = '/\bREC[\s\p{Pd}]?(\d{4})\b/iu';
 
     /** @return list<string> one plain-English problem per failed check; empty when the answer passes */
     public function problems(FinalAnswer $answer, RunContext $context): array
@@ -35,7 +36,9 @@ final class CitationVerifier
 
         preg_match_all(self::ID_IN_TEXT, $answer->answer, $matches);
 
-        foreach (array_unique($matches[0]) as $mentioned) {
+        $mentionedIds = array_unique(array_map(static fn (string $digits): string => "REC-{$digits}", $matches[1]));
+
+        foreach ($mentionedIds as $mentioned) {
             if (! in_array($mentioned, $answer->citedRecordIds, true)) {
                 $problems[] = "Mentioned {$mentioned} in the answer without citing it.";
             }

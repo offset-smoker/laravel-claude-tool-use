@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Assistant\CitationVerifier;
+use App\Assistant\FinalAnswer;
+use App\Assistant\RunContext;
 use App\Enums\AnswerStatus;
 
 it('fails an answer that cites a missing id, an id no tool returned, or mentions an id it did not cite', function () {
@@ -31,4 +34,20 @@ it('does not count an id the model asked for when the tool said it does not exis
 
     expect($result->status)->toBe(AnswerStatus::Verified)
         ->and($result->citedRecordIds)->not->toContain('REC-0999');
+});
+
+it('catches a mentioned id written in lower case, with a space or with no separator', function (string $mention) {
+    $context = RunContext::start();
+    $context->markReturned(['REC-0001']);
+
+    $problems = app(CitationVerifier::class)->problems(new FinalAnswer("Four potholes (REC-0001); see also {$mention}.", ['REC-0001']), $context);
+
+    expect($problems)->toBe(['Mentioned REC-0004 in the answer without citing it.']);
+})->with(['rec-0004', 'REC 0004', 'Rec0004', 'REC‑0004 (non-breaking hyphen)']);
+
+it('accepts a cited id however the answer writes it', function () {
+    $context = RunContext::start();
+    $context->markReturned(['REC-0001']);
+
+    expect(app(CitationVerifier::class)->problems(new FinalAnswer('See rec 0001.', ['REC-0001']), $context))->toBe([]);
 });
