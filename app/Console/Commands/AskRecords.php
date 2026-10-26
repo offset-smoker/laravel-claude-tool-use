@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use Anthropic\Core\Exceptions\AnthropicException;
 use App\Assistant\AssistantResult;
+use App\Assistant\ClaudeNotConfigured;
 use App\Assistant\ToolUseLoop;
 use App\Assistant\UntrustedText;
 use App\Console\ConsoleText;
@@ -19,7 +21,7 @@ final class AskRecords extends Command
 
     protected $description = 'Ask Claude a question about the synthetic town records';
 
-    public function handle(ToolUseLoop $loop): int
+    public function handle(): int
     {
         $question = $this->argument('question');
 
@@ -31,6 +33,17 @@ final class AskRecords extends Command
             $this->error(implode(' ', $errors));
 
             return self::INVALID;
+        }
+
+        // Resolved only after the question passes, so a bad question is
+        // reported as such even when no credentials are configured. Building
+        // the loop resolves credentials and checks CLAUDE_EFFORT.
+        try {
+            $loop = app(ToolUseLoop::class);
+        } catch (ClaudeNotConfigured|AnthropicException $exception) {
+            $this->error(ConsoleText::safe($exception->getMessage()));
+
+            return self::FAILURE;
         }
 
         $result = $loop->ask($question);

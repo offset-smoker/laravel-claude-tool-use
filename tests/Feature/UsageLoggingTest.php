@@ -91,3 +91,18 @@ it('logs an unknown cost, rather than a wrong one, for a model with no configure
         ->and($records[2]->context['estimated_cost_usd'])->toBeNull()
         ->and($result->usage->estimatedCostUsd)->toBeNull();
 });
+
+it('still logs the run, with the calls that succeeded, when an API call fails', function () {
+    claude('pothole_search')->queueError(429, ['type' => 'rate_limit_error', 'message' => 'Fixture rate limit.']);
+
+    $result = ask('How many potholes were filled?');
+    $records = usageRecords();
+
+    expect(array_map(fn (LogRecord $record): string => $record->message, $records))->toBe(['claude.call', 'claude.run'])
+        ->and($records[1]->context)->toMatchArray([
+            'run_id' => $result->runId,
+            'status' => 'api_error',
+            'iterations' => 1,
+            'input_tokens' => 412,
+        ]);
+});

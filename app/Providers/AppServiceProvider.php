@@ -60,7 +60,7 @@ final class AppServiceProvider extends ServiceProvider
                 usage: $app->make(UsageRecorder::class),
                 citations: $app->make(CitationVerifier::class),
                 model: config()->string('claude.model'),
-                effort: Effort::from(config()->string('claude.effort')),
+                effort: Effort::tryFrom(config()->string('claude.effort')) ?? throw ClaudeNotConfigured::invalidEffort(),
                 maxTokens: config()->integer('claude.max_tokens'),
                 maxIterations: max(1, config()->integer('claude.max_iterations')),
                 fallbacks: config()->boolean('claude.fallbacks'),

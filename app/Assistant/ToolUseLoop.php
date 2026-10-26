@@ -14,6 +14,7 @@ use Anthropic\Beta\Messages\BetaToolResultBlockParam;
 use Anthropic\Beta\Messages\BetaToolUseBlock;
 use Anthropic\Beta\Messages\BetaUserMessageParam;
 use Anthropic\Client;
+use Anthropic\Core\Exceptions\APIException;
 use App\Assistant\Tools\ToolRegistry;
 use App\Enums\AnswerStatus;
 
@@ -23,7 +24,8 @@ use App\Enums\AnswerStatus;
  * Each iteration is one model call. While the model stops with tool_use, every
  * tool_use block in the response is run and all of the results go back in a
  * single user message, failures as is_error results. The loop ends on any
- * other stop reason or when the iteration cap is reached.
+ * other stop reason, on a failed API call, or when the iteration cap is
+ * reached. Every ending is recorded as a run in the usage log.
  */
 final readonly class ToolUseLoop
 {
@@ -49,16 +51,26 @@ final readonly class ToolUseLoop
         $total = new TokenUsage;
 
         for ($iteration = 1; $iteration <= $this->maxIterations; $iteration++) {
-            $response = $this->client->beta->messages->create(
-                maxTokens: $this->maxTokens,
-                messages: $messages,
-                model: $this->model,
-                fallbacks: $this->fallbacks ? 'default' : null,
-                outputConfig: $outputConfig,
-                system: SystemPrompt::blocks(),
-                tools: $this->tools->definitions(),
-                betas: $this->fallbacks ? [self::FALLBACK_BETA] : null,
-            );
+            try {
+                $response = $this->client->beta->messages->create(
+                    maxTokens: $this->maxTokens,
+                    messages: $messages,
+                    model: $this->model,
+                    fallbacks: $this->fallbacks ? 'default' : null,
+                    outputConfig: $outputConfig,
+                    system: SystemPrompt::blocks(),
+                    tools: $this->tools->definitions(),
+                    betas: $this->fallbacks ? [self::FALLBACK_BETA] : null,
+                );
+            } catch (APIException $exception) {
+                return $this->result(
+                    $context,
+                    AnswerStatus::ApiError,
+                    $iteration - 1,
+                    $total,
+                    detail: self::describe($exception),
+                );
+            }
 
             $total = $total->plus($this->usage->recordCall($context->runId, $iteration, $response));
 
@@ -66,8 +78,20 @@ final readonly class ToolUseLoop
                 return $this->finish($response, $context, $iteration, $total);
             }
 
+            $toolResults = $this->runTools($response, $context);
+
+            if ($toolResults === []) {
+                return $this->result(
+                    $context,
+                    AnswerStatus::UnexpectedStop,
+                    $iteration,
+                    $total,
+                    detail: 'The response stopped for tool_use but contained no tool_use block.',
+                );
+            }
+
             $messages[] = $this->replay($response);
-            $messages[] = BetaUserMessageParam::with($this->runTools($response, $context));
+            $messages[] = BetaUserMessageParam::with($toolResults);
         }
 
         return $this->result(
@@ -91,6 +115,20 @@ final readonly class ToolUseLoop
             'role' => 'assistant',
             'content' => is_array($wire) ? $wire['content'] : [],
         ]);
+    }
+
+    /**
+     * The exception class, HTTP status and request id only. The SDK's message
+     * embeds the response body, which is not printed or logged.
+     */
+    private static function describe(APIException $exception): string
+    {
+        return sprintf(
+            'The Claude API request failed (%s, %s, request id %s).',
+            class_basename($exception),
+            $exception->status === null ? 'no HTTP status' : "HTTP {$exception->status}",
+            $exception->getRequestID() ?? 'none',
+        );
     }
 
     /** @return list<BetaToolResultBlockParam> */

@@ -69,7 +69,12 @@ Run 4f0c...: 3 model call(s); tokens: 1,236 input, 288 output, 1,630 cache write
 The command exits with 0 only when the answer ended normally and passed the
 citation check. Every other outcome (citation check failed, malformed final
 message, refusal, response cut off at `max_tokens`, iteration limit, an
-unexpected stop reason) prints what happened and exits with 1.
+unexpected stop reason, a failed API call) prints what happened and exits
+with 1. A failed API call (rate limit, overload, network error, rejected key)
+is reported in one line with its HTTP status and request id; the proposals
+already saved in that run and the usage so far are still printed and logged.
+Missing credentials and an invalid `CLAUDE_EFFORT` are reported in one line
+too, before any request is made.
 
 Ask for a release and the model can only propose one:
 
@@ -132,7 +137,9 @@ redaction quote that is not in the record, an unknown tool name) returns an
 `is_error: true` result explaining the problem, and the model gets to try
 again. Any other stop reason ends the loop: `end_turn` is parsed as the
 answer; `refusal`, `max_tokens` and anything else are reported as failures,
-and tool calls in a truncated response are never run. After
+and tool calls in a truncated response are never run. A `tool_use` stop with
+no `tool_use` block in it also ends the run, rather than sending an empty
+user message. After
 `CLAUDE_MAX_ITERATIONS` calls the loop stops whatever the model is doing.
 
 **Tools.** All three use JSON-schema inputs with `strict: true` and
@@ -193,7 +200,7 @@ All settings are in `config/claude.php` and read from `.env`:
 |---|---|---|
 | `ANTHROPIC_API_KEY` | none | API key. Read only by `config/claude.php`; never logged. |
 | `CLAUDE_MODEL` | `claude-opus-5-5` | Model id. `claude-sonnet-5-5` and `claude-haiku-5-5` are priced in the config too. |
-| `CLAUDE_EFFORT` | `medium` | `low`, `medium`, `high`, `xhigh` or `max`. Any other value fails at startup. |
+| `CLAUDE_EFFORT` | `medium` | `low`, `medium`, `high`, `xhigh` or `max`. With any other value `records:ask` refuses to start; the other commands do not read it. |
 | `CLAUDE_MAX_TOKENS` | `16000` | `max_tokens` for each call. |
 | `CLAUDE_MAX_ITERATIONS` | `8` | Most model calls for one question. |
 | `CLAUDE_FALLBACKS` | `true` | Send the server-side refusal fallback. |

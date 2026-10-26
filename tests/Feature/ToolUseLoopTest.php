@@ -158,9 +158,26 @@ it('rejects a final message that is not the structured answer', function () {
         ->and($result->answer)->toBeNull();
 });
 
-it('lets an API error propagate instead of swallowing it', function () {
-    $transport = claude();
-    $transport->queueError(400, ['type' => 'invalid_request_error', 'message' => 'Fixture error.']);
+it('ends with an API error, keeping the proposals already saved, when a call fails part way through', function () {
+    $transport = claude('pavilion_get', 'pavilion_propose');
+    $transport->queueError(529, ['type' => 'overloaded_error', 'message' => 'Fixture overload.']);
 
-    ask('Anything.');
-})->throws(Anthropic\Core\Exceptions\BadRequestException::class);
+    $result = ask('Please release the Willowbend Park pavilion booking.');
+
+    expect($result->status)->toBe(AnswerStatus::ApiError)
+        ->and($result->answer)->toBeNull()
+        ->and($result->iterations)->toBe(2)
+        ->and($result->pendingReleaseIds)->toBe([PendingRelease::query()->sole()->id])
+        ->and($result->detail)->toBe('The Claude API request failed (InternalServerException, HTTP 529, request id none).')
+        ->and($transport->requests())->toHaveCount(3);
+});
+
+it('ends the run instead of sending an empty message when tool_use comes with no tool_use block', function () {
+    $transport = claude('tool_use_without_block');
+
+    $result = ask('Anything.');
+
+    expect($result->status)->toBe(AnswerStatus::UnexpectedStop)
+        ->and($result->detail)->toBe('The response stopped for tool_use but contained no tool_use block.')
+        ->and($transport->requests())->toHaveCount(1);
+});

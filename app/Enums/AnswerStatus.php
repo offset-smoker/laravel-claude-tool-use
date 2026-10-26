@@ -22,8 +22,11 @@ enum AnswerStatus: string
 
     case IterationLimit = 'iteration_limit';
 
-    /** A stop reason this loop does not handle, such as pause_turn. */
+    /** A stop reason this loop does not handle, such as pause_turn, or tool_use with no tool call in it. */
     case UnexpectedStop = 'unexpected_stop';
+
+    /** A Messages API call failed: a network error, rate limit, overload or rejected request. */
+    case ApiError = 'api_error';
 
     public function label(): string
     {
@@ -35,6 +38,7 @@ enum AnswerStatus: string
             self::Truncated => 'No answer: the response was cut off',
             self::IterationLimit => 'No answer: the iteration limit was reached',
             self::UnexpectedStop => 'No answer: unexpected stop reason',
+            self::ApiError => 'No answer: the Claude API returned an error',
         };
     }
 }
