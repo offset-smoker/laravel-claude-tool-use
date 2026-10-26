@@ -2,11 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Actions\Redactor;
 use App\Assistant\RunContext;
 use App\Assistant\Tools\SearchRecords;
 use App\Assistant\Tools\ToolRegistry;
 use App\Assistant\Tools\ToolResult;
+use App\Models\PendingRelease;
 use App\Models\Record;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /** @param array<string, mixed> $input */
 function runTool(string $name, array $input, ?RunContext $context = null): ToolResult
@@ -105,6 +109,55 @@ it('accepts a quote the model copied in escaped form', function () {
     ]);
 
     expect($result->isError)->toBeFalse();
+});
+
+it('accepts a quote of the cleaned text the model saw and redacts the original characters', function () {
+    Record::factory()->create(['id' => 'REC-0601', 'body' => "Applicant: Jordan\r\nPlaceholder, phone 555\u{200B}-0177.\r\nApproved."]);
+
+    // get_record showed the model CRLF folded to LF and the zero-width space removed.
+    $result = runTool('propose_redaction', [
+        'record_id' => 'REC-0601',
+        'redactions' => [
+            ['text' => "Jordan\nPlaceholder", 'reason' => 'personal_identifier'],
+            ['text' => '555-0177', 'reason' => 'personal_contact'],
+        ],
+        'rationale' => 'Removes a name and a phone number.',
+    ]);
+
+    $pending = PendingRelease::query()->sole();
+    $released = (new Redactor)->apply($pending->record->body, $pending->redactions);
+
+    expect($result->isError)->toBeFalse()
+        ->and($pending->redactions)->toBe([
+            ['text' => "Jordan\r\nPlaceholder", 'reason' => 'personal_identifier'],
+            ['text' => "555\u{200B}-0177", 'reason' => 'personal_contact'],
+        ])
+        ->and($released)->toBe("Applicant: [REDACTED: personal_identifier], phone [REDACTED: personal_contact].\r\nApproved.");
+});
+
+it('turns a proposal that loses a race for the record into a tool error, not an exception', function () {
+    // Another process saves a proposal for REC-0004 after this one checked for one.
+    PendingRelease::creating(function (PendingRelease $pending): void {
+        DB::table('pending_releases')->insert([
+            'id' => (string) Str::ulid(),
+            'record_id' => $pending->record_id,
+            'redactions' => '[]',
+            'rationale' => 'Saved by another process.',
+            'record_body_sha256' => $pending->record_body_sha256,
+            'requested_in_run' => (string) Str::uuid(),
+            'status' => 'pending',
+        ]);
+    });
+
+    $result = runTool('propose_redaction', [
+        'record_id' => 'REC-0004',
+        'redactions' => [['text' => 'Jordan Placeholder', 'reason' => 'personal_identifier']],
+        'rationale' => 'Removes a name.',
+    ]);
+
+    expect($result->isError)->toBeTrue()
+        ->and($result->content)->toBe('REC-0004 already has a proposal awaiting review. Do not propose it again.')
+        ->and(PendingRelease::query()->count())->toBe(1);
 });
 
 it('rejects too many redactions', function () {

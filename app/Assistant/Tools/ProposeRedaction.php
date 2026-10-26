@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Assistant\Tools;
 
 use App\Assistant\RunContext;
+use App\Assistant\UntrustedText;
 use App\Enums\RedactionReason;
 use App\Enums\ReleaseStatus;
 use App\Models\PendingRelease;
 use App\Models\Record;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Validation\Rule;
 
 /**
@@ -79,18 +81,21 @@ final class ProposeRedaction implements Tool
         /** @var list<array{text: string, reason: string}> $validatedRedactions  shape checked by the rules above */
         $validatedRedactions = $input->array('redactions');
 
-        // The model read the record through UntrustedText, so it may quote "&lt;" where the record has "<".
-        $redactions = array_map(
-            static fn (array $redaction): array => [
-                'text' => htmlspecialchars_decode($redaction['text'], ENT_NOQUOTES),
-                'reason' => $redaction['reason'],
-            ],
-            $validatedRedactions,
-        );
+        // The model read the record through UntrustedText: it may quote "&lt;"
+        // where the record has "<", and it never saw carriage returns or
+        // invisible characters. Each quote is traced back to the passages of
+        // the original body it stands for, and those are what get redacted.
+        $redactions = [];
 
-        foreach ($redactions as $index => $redaction) {
-            if (! str_contains($record->body, $redaction['text'])) {
+        foreach ($validatedRedactions as $index => $redaction) {
+            $passages = UntrustedText::originalPassages($record->body, htmlspecialchars_decode($redaction['text'], ENT_NOQUOTES));
+
+            if ($passages === []) {
                 throw new ToolInputInvalid("Redaction {$index} does not quote the text of {$record->id} exactly. Copy the passage from get_record and try again.");
+            }
+
+            foreach ($passages as $passage) {
+                $redactions[] = ['text' => $passage, 'reason' => $redaction['reason']];
             }
         }
 
@@ -102,13 +107,18 @@ final class ProposeRedaction implements Tool
 
         $rationale = $input->string('rationale')->toString();
 
-        $pending = PendingRelease::query()->create([
-            'record_id' => $record->id,
-            'redactions' => $redactions,
-            'rationale' => $rationale,
-            'record_body_sha256' => $record->bodyHash(),
-            'requested_in_run' => $context->runId,
-        ]);
+        try {
+            $pending = PendingRelease::query()->create([
+                'record_id' => $record->id,
+                'redactions' => $redactions,
+                'rationale' => $rationale,
+                'record_body_sha256' => $record->bodyHash(),
+                'requested_in_run' => $context->runId,
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            // Another process saved a proposal for this record after the check above.
+            throw new ToolInputInvalid("{$record->id} already has a proposal awaiting review. Do not propose it again.");
+        }
 
         $context->addPendingRelease($pending->id);
 

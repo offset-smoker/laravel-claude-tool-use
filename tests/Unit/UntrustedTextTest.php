@@ -36,3 +36,10 @@ it('escapes double quotes in a delimiter attribute so it cannot be closed early'
     expect(UntrustedText::record('REC-0001" injected="1', 'Body'))->toStartWith('<record_text record_id="REC-0001&quot; injected=&quot;1">')
         ->and(UntrustedText::title('REC-0001"', 'T'))->toStartWith('<record_title record_id="REC-0001&quot;">');
 });
+
+it('traces a quote of cleaned text back to each distinct original passage', function () {
+    expect(UntrustedText::originalPassages("a\r\nb, a\nb, a\u{200B}\nb", "a\nb"))->toBe(["a\r\nb", "a\nb", "a\u{200B}\nb"])
+        ->and(UntrustedText::originalPassages('Café 555-0101', '555-0101'))->toBe(['555-0101'])
+        ->and(UntrustedText::originalPassages('Plain text.', 'missing'))->toBe([])
+        ->and(UntrustedText::originalPassages('Plain text.', ''))->toBe([]);
+});
