@@ -50,20 +50,37 @@ it('sends the API key only in the authorization header', function () {
 it('refuses to build a client, and so sends nothing, when no credentials exist anywhere', function () {
     $emptyConfigDir = sys_get_temp_dir().'/claude-tool-use-no-profile-'.getmypid();
     File::ensureDirectoryExists($emptyConfigDir);
+
+    // Every variable the SDK's credential chain reads. $_ENV wins over the
+    // process environment, so blank values here hide a developer's own.
+    $credentialVariables = [
+        'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_PROFILE', 'ANTHROPIC_CONFIG_DIR',
+        'ANTHROPIC_FEDERATION_RULE_ID', 'ANTHROPIC_ORGANIZATION_ID', 'ANTHROPIC_SERVICE_ACCOUNT_ID',
+        'ANTHROPIC_WORKSPACE_ID', 'ANTHROPIC_IDENTITY_TOKEN', 'ANTHROPIC_IDENTITY_TOKEN_FILE',
+    ];
+    $environmentBefore = $_ENV;
+    $saved = array_intersect_key($_ENV, array_flip($credentialVariables));
+
+    foreach ($credentialVariables as $variable) {
+        $_ENV[$variable] = '';
+    }
     $_ENV['ANTHROPIC_CONFIG_DIR'] = $emptyConfigDir;
-    $_ENV['ANTHROPIC_API_KEY'] = '';
-    $_ENV['ANTHROPIC_AUTH_TOKEN'] = '';
-    unset($_ENV['ANTHROPIC_PROFILE']);
     config(['claude.api_key' => null]);
     app()->forgetInstance(Client::class);
 
     try {
-        app(Client::class);
+        expect(fn () => app(Client::class))->toThrow(ClaudeNotConfigured::class, 'No Claude credentials found.');
     } finally {
-        unset($_ENV['ANTHROPIC_CONFIG_DIR']);
+        foreach ($credentialVariables as $variable) {
+            unset($_ENV[$variable]);
+        }
+        $_ENV = [...$_ENV, ...$saved];
         File::deleteDirectory($emptyConfigDir);
     }
-})->throws(ClaudeNotConfigured::class, 'No Claude credentials found.');
+
+    // Nothing leaks into later tests.
+    expect($_ENV)->toEqual($environmentBefore);
+});
 
 it('builds a client from the configured key', function () {
     config(['claude.api_key' => 'sk-ant-configured-in-test']);
