@@ -1,5 +1,6 @@
 <?php
 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -71,6 +72,16 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'max_files' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
+        ],
+
+        // Token counts and cost estimates only: see App\Assistant\UsageRecorder.
+        'claude_usage' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/claude-usage.log'),
+            'level' => 'info',
+            'days' => 30,
+            'formatter' => JsonFormatter::class,
+            'replace_placeholders' => false,
         ],
 
         'monthly' => [

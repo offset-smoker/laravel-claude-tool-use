@@ -1,0 +1,35 @@
+{
+    "id": "msg_01Fixture0017",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+        {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "EqQBCkYIBxgCKkDfixture-signature-not-real"
+        },
+        {
+            "type": "tool_use",
+            "id": "toolu_07BadQuote",
+            "name": "propose_redaction",
+            "input": {
+                "record_id": "REC-0004",
+                "redactions": [
+                    {
+                        "text": "phone 555-9999",
+                        "reason": "personal_contact"
+                    }
+                ],
+                "rationale": "Removes the phone number."
+            }
+        }
+    ],
+    "stop_reason": "tool_use",
+    "usage": {
+        "input_tokens": 412,
+        "output_tokens": 96,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1630
+    }
+}

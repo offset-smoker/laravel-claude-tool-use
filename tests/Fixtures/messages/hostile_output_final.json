@@ -1,0 +1,19 @@
+{
+    "id": "msg_01Fixture0024",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+        {
+            "type": "text",
+            "text": "{\"answer\":\"<error>Crew 2</error> filled \\u001b[31mfour\\u001b[0m potholes (REC-0001).\",\"cited_record_ids\":[\"REC-0001\"]}"
+        }
+    ],
+    "stop_reason": "end_turn",
+    "usage": {
+        "input_tokens": 412,
+        "output_tokens": 96,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1630
+    }
+}

@@ -1,0 +1,19 @@
+{
+    "id": "msg_01Fixture0016",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+        {
+            "type": "text",
+            "text": "{\"answer\":\"I proposed releasing REC-0004 with four redactions: the applicant's name, phone number and address, and a guest's disability. It is awaiting review by a person and has not been released.\",\"cited_record_ids\":[\"REC-0004\"]}"
+        }
+    ],
+    "stop_reason": "end_turn",
+    "usage": {
+        "input_tokens": 412,
+        "output_tokens": 96,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1630
+    }
+}

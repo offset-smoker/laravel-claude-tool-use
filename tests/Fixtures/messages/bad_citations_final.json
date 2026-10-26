@@ -1,0 +1,19 @@
+{
+    "id": "msg_01Fixture0010",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+        {
+            "type": "text",
+            "text": "{\"answer\":\"Potholes were filled (REC-0001), and the streetlights were fixed too (REC-0002).\",\"cited_record_ids\":[\"REC-0001\",\"REC-0004\",\"REC-0999\"]}"
+        }
+    ],
+    "stop_reason": "end_turn",
+    "usage": {
+        "input_tokens": 412,
+        "output_tokens": 96,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1630
+    }
+}

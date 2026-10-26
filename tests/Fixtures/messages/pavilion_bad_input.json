@@ -1,0 +1,35 @@
+{
+    "id": "msg_01Fixture0018",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+        {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "EqQBCkYIBxgCKkDfixture-signature-not-real"
+        },
+        {
+            "type": "tool_use",
+            "id": "toolu_07BadInput",
+            "name": "propose_redaction",
+            "input": {
+                "record_id": "record four",
+                "redactions": [
+                    {
+                        "text": "Jordan Placeholder",
+                        "reason": "gossip"
+                    }
+                ],
+                "rationale": ""
+            }
+        }
+    ],
+    "stop_reason": "tool_use",
+    "usage": {
+        "input_tokens": 412,
+        "output_tokens": 96,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1630
+    }
+}

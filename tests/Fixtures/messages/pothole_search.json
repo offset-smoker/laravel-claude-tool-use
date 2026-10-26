@@ -1,0 +1,29 @@
+{
+    "id": "msg_01Fixture0001",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+        {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "EqQBCkYIBxgCKkDfixture-signature-not-real"
+        },
+        {
+            "type": "tool_use",
+            "id": "toolu_01PotholeSearch",
+            "name": "search_records",
+            "input": {
+                "query": "pothole Millrace",
+                "department": "any"
+            }
+        }
+    ],
+    "stop_reason": "tool_use",
+    "usage": {
+        "cache_creation_input_tokens": 1630,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 412,
+        "output_tokens": 96
+    }
+}

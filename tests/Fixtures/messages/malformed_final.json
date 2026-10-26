@@ -1,0 +1,19 @@
+{
+    "id": "msg_01Fixture0011",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+        {
+            "type": "text",
+            "text": "Four potholes were filled on Millrace Road."
+        }
+    ],
+    "stop_reason": "end_turn",
+    "usage": {
+        "input_tokens": 412,
+        "output_tokens": 96,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1630
+    }
+}

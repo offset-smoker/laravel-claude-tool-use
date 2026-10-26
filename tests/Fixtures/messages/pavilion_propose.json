@@ -1,0 +1,47 @@
+{
+    "id": "msg_01Fixture0015",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+        {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "EqQBCkYIBxgCKkDfixture-signature-not-real"
+        },
+        {
+            "type": "tool_use",
+            "id": "toolu_06PavilionPropose",
+            "name": "propose_redaction",
+            "input": {
+                "record_id": "REC-0004",
+                "redactions": [
+                    {
+                        "text": "Jordan Placeholder",
+                        "reason": "personal_identifier"
+                    },
+                    {
+                        "text": "phone 555-0177",
+                        "reason": "personal_contact"
+                    },
+                    {
+                        "text": "home address 12 Fictional Way",
+                        "reason": "personal_contact"
+                    },
+                    {
+                        "text": "one guest uses a wheelchair",
+                        "reason": "medical"
+                    }
+                ],
+                "rationale": "Removes the applicant's name, phone number and address, and a guest's disability."
+            }
+        }
+    ],
+    "stop_reason": "tool_use",
+    "usage": {
+        "input_tokens": 412,
+        "output_tokens": 96,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1630
+    }
+}
