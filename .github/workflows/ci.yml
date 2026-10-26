@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: json, mbstring, pdo_sqlite
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Audit dependencies
+        run: composer audit
+
+      - name: Prepare the environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Check code style
+        run: vendor/bin/pint --test
+
+      - name: Static analysis (Larastan level max, no baseline)
+        run: |
+          vendor/bin/phpstan clear-result-cache
+          vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+      # Unit, Feature and Architecture suites. The Messages API is served
+      # from fixtures; no test reaches the network.
+      - name: Tests
+        run: vendor/bin/pest --colors=never
+
+      - name: Boot from cached config and routes
+        run: |
+          php artisan config:cache
+          php artisan route:cache
+          php artisan list records
+          php artisan optimize:clear
