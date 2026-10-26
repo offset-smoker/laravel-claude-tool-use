@@ -13,7 +13,7 @@ interface Tool
     /**
      * The tool definition sent to the Messages API, in the SDK's camelCase keys.
      *
-     * @return array{name: string, description: string, inputSchema: array<string, mixed>, strict: bool}
+     * @return array{name: string, description: string, inputSchema: array{type: 'object', properties: array<string, mixed>, required: list<string>, additionalProperties: false}, strict: true}
      */
     public function definition(): array;
 

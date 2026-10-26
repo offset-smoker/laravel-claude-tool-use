@@ -17,20 +17,17 @@ final readonly class FinalAnswer
         public array $citedRecordIds,
     ) {}
 
-    /** @return array{type: 'json_schema', schema: array<string, mixed>} */
-    public static function format(): array
+    /** @return array<string, mixed> the JSON schema for output_config.format */
+    public static function schema(): array
     {
         return [
-            'type' => 'json_schema',
-            'schema' => [
-                'type' => 'object',
-                'properties' => [
-                    'answer' => ['type' => 'string'],
-                    'cited_record_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
-                ],
-                'required' => ['answer', 'cited_record_ids'],
-                'additionalProperties' => false,
+            'type' => 'object',
+            'properties' => [
+                'answer' => ['type' => 'string'],
+                'cited_record_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
             ],
+            'required' => ['answer', 'cited_record_ids'],
+            'additionalProperties' => false,
         ];
     }
 

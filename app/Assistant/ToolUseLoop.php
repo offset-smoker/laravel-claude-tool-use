@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace App\Assistant;
 
+use Anthropic\Beta\Messages\BetaAssistantMessageParam;
+use Anthropic\Beta\Messages\BetaJSONOutputFormat;
 use Anthropic\Beta\Messages\BetaMessage;
+use Anthropic\Beta\Messages\BetaOutputConfig;
+use Anthropic\Beta\Messages\BetaOutputConfig\Effort;
 use Anthropic\Beta\Messages\BetaTextBlock;
+use Anthropic\Beta\Messages\BetaToolResultBlockParam;
 use Anthropic\Beta\Messages\BetaToolUseBlock;
+use Anthropic\Beta\Messages\BetaUserMessageParam;
 use Anthropic\Client;
 use App\Assistant\Tools\ToolRegistry;
 use App\Enums\AnswerStatus;
@@ -29,16 +35,17 @@ final readonly class ToolUseLoop
         private UsageRecorder $usage,
         private CitationVerifier $citations,
         private string $model,
-        private string $effort,
+        private Effort $effort,
         private int $maxTokens,
         private int $maxIterations,
-        private ?string $fallbacks,
+        private bool $fallbacks,
     ) {}
 
     public function ask(string $question): AssistantResult
     {
         $context = RunContext::start();
-        $messages = [['role' => 'user', 'content' => UntrustedText::question($question)]];
+        $messages = [BetaUserMessageParam::with(UntrustedText::question($question))];
+        $outputConfig = BetaOutputConfig::with(effort: $this->effort, format: BetaJSONOutputFormat::with(FinalAnswer::schema()));
         $total = new TokenUsage;
 
         for ($iteration = 1; $iteration <= $this->maxIterations; $iteration++) {
@@ -46,11 +53,11 @@ final readonly class ToolUseLoop
                 maxTokens: $this->maxTokens,
                 messages: $messages,
                 model: $this->model,
-                fallbacks: $this->fallbacks,
-                outputConfig: ['effort' => $this->effort, 'format' => FinalAnswer::format()],
+                fallbacks: $this->fallbacks ? 'default' : null,
+                outputConfig: $outputConfig,
                 system: SystemPrompt::blocks(),
                 tools: $this->tools->definitions(),
-                betas: $this->fallbacks === null ? null : [self::FALLBACK_BETA],
+                betas: $this->fallbacks ? [self::FALLBACK_BETA] : null,
             );
 
             $total = $total->plus($this->usage->recordCall($context->runId, $iteration, $response));
@@ -59,16 +66,34 @@ final readonly class ToolUseLoop
                 return $this->finish($response, $context, $iteration, $total);
             }
 
-            // The whole content goes back, thinking blocks included, unchanged.
-            $messages[] = ['role' => 'assistant', 'content' => $response->content];
-            $messages[] = ['role' => 'user', 'content' => $this->runTools($response, $context)];
+            $messages[] = $this->replay($response);
+            $messages[] = BetaUserMessageParam::with($this->runTools($response, $context));
         }
 
-        return $this->result($context, AnswerStatus::IterationLimit, $this->maxIterations, $total,
-            detail: "Stopped after {$this->maxIterations} model calls without a final answer.");
+        return $this->result(
+            $context,
+            AnswerStatus::IterationLimit,
+            $this->maxIterations,
+            $total,
+            detail: "Stopped after {$this->maxIterations} model calls without a final answer.",
+        );
     }
 
-    /** @return list<array{type: 'tool_result', toolUseID: string, content: string, isError: bool}> */
+    /**
+     * The assistant turn goes back whole and unchanged: thinking blocks with
+     * their signatures, any fallback block, text and every tool_use.
+     */
+    private function replay(BetaMessage $response): BetaAssistantMessageParam
+    {
+        $wire = $response->jsonSerialize();
+
+        return BetaAssistantMessageParam::fromArray([
+            'role' => 'assistant',
+            'content' => is_array($wire) ? $wire['content'] : [],
+        ]);
+    }
+
+    /** @return list<BetaToolResultBlockParam> */
     private function runTools(BetaMessage $response, RunContext $context): array
     {
         $results = [];
@@ -80,12 +105,11 @@ final readonly class ToolUseLoop
 
             $result = $this->tools->run($block->name, $block->input, $context);
 
-            $results[] = [
-                'type' => 'tool_result',
-                'toolUseID' => $block->id,
-                'content' => $result->content,
-                'isError' => $result->isError,
-            ];
+            $results[] = BetaToolResultBlockParam::with(
+                toolUseID: $block->id,
+                content: $result->content,
+                isError: $result->isError,
+            );
         }
 
         return $results;
@@ -94,18 +118,33 @@ final readonly class ToolUseLoop
     private function finish(BetaMessage $response, RunContext $context, int $iterations, TokenUsage $total): AssistantResult
     {
         if ($response->stopReason === 'refusal') {
-            return $this->result($context, AnswerStatus::Refused, $iterations, $total,
-                detail: 'The model declined'.($response->stopDetails?->category !== null ? " (category: {$response->stopDetails->category})" : '').'.');
+            return $this->result(
+                $context,
+                AnswerStatus::Refused,
+                $iterations,
+                $total,
+                detail: 'The model declined'.($response->stopDetails?->category !== null ? " (category: {$response->stopDetails->category})" : '').'.',
+            );
         }
 
         if ($response->stopReason === 'max_tokens') {
-            return $this->result($context, AnswerStatus::Truncated, $iterations, $total,
-                detail: 'The response hit max_tokens. No tool call in it was run.');
+            return $this->result(
+                $context,
+                AnswerStatus::Truncated,
+                $iterations,
+                $total,
+                detail: 'The response hit max_tokens. No tool call in it was run.',
+            );
         }
 
         if ($response->stopReason !== 'end_turn') {
-            return $this->result($context, AnswerStatus::UnexpectedStop, $iterations, $total,
-                detail: 'Unexpected stop reason: '.($response->stopReason ?? 'none').'.');
+            return $this->result(
+                $context,
+                AnswerStatus::UnexpectedStop,
+                $iterations,
+                $total,
+                detail: 'Unexpected stop reason: '.($response->stopReason ?? 'none').'.',
+            );
         }
 
         $text = '';
@@ -118,8 +157,13 @@ final readonly class ToolUseLoop
         $answer = FinalAnswer::parse($text);
 
         if ($answer === null) {
-            return $this->result($context, AnswerStatus::Malformed, $iterations, $total,
-                detail: 'The final message was not the JSON the output schema requires.');
+            return $this->result(
+                $context,
+                AnswerStatus::Malformed,
+                $iterations,
+                $total,
+                detail: 'The final message was not the JSON the output schema requires.',
+            );
         }
 
         $problems = $this->citations->problems($answer, $context);

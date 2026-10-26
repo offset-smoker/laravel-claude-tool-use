@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Assistant\Tools;
 
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\ValidatedInput;
 
 trait ValidatesInput
 {
@@ -13,11 +14,10 @@ trait ValidatesInput
      *
      * @param  array<array-key, mixed>  $input
      * @param  array<string, mixed>  $rules
-     * @return array<string, mixed>
      *
      * @throws ToolInputInvalid
      */
-    private function validated(array $input, array $rules): array
+    private function validated(array $input, array $rules): ValidatedInput
     {
         $validator = Validator::make($input, $rules);
 
@@ -25,7 +25,6 @@ trait ValidatesInput
             throw new ToolInputInvalid('Invalid input: '.implode(' ', $validator->errors()->all()));
         }
 
-        /** @var array<string, mixed> */
-        return $validator->validated();
+        return $validator->safe();
     }
 }

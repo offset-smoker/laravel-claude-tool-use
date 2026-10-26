@@ -13,7 +13,8 @@ return [
 
     /*
     | Claude Opus 5.5 always thinks; effort is the depth control. Its default
-    | is "medium", set here explicitly so a reader can see it.
+    | is "medium", set here explicitly so a reader can see it. One of low,
+    | medium, high, xhigh or max.
     */
     'effort' => env('CLAUDE_EFFORT', 'medium'),
 
@@ -26,10 +27,11 @@ return [
     'max_iterations' => (int) env('CLAUDE_MAX_ITERATIONS', 8),
 
     /*
-    | Server-side refusal fallback. "default" lets the API pick the fallback
-    | model; set CLAUDE_FALLBACKS=off to send no fallback parameter at all.
+    | Server-side refusal fallback: when the model declines for policy reasons
+    | the API retries on its default fallback model. false sends no fallback
+    | parameter at all.
     */
-    'fallbacks' => env('CLAUDE_FALLBACKS', 'default'),
+    'fallbacks' => (bool) env('CLAUDE_FALLBACKS', true),
 
     'usage_log_channel' => env('CLAUDE_USAGE_LOG_CHANNEL', 'claude_usage'),
 

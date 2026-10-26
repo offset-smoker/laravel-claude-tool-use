@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use Anthropic\Beta\Messages\BetaOutputConfig\Effort;
 use Anthropic\Client;
 use App\Assistant\CitationVerifier;
 use App\Assistant\CostEstimator;
@@ -39,18 +40,16 @@ final class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(ToolUseLoop::class, static function (Application $app): ToolUseLoop {
-            $fallbacks = config()->string('claude.fallbacks');
-
             return new ToolUseLoop(
                 client: $app->make(Client::class),
                 tools: $app->make(ToolRegistry::class),
                 usage: $app->make(UsageRecorder::class),
                 citations: $app->make(CitationVerifier::class),
                 model: config()->string('claude.model'),
-                effort: config()->string('claude.effort'),
+                effort: Effort::from(config()->string('claude.effort')),
                 maxTokens: config()->integer('claude.max_tokens'),
                 maxIterations: max(1, config()->integer('claude.max_iterations')),
-                fallbacks: $fallbacks === 'off' || $fallbacks === '' ? null : $fallbacks,
+                fallbacks: config()->boolean('claude.fallbacks'),
             );
         });
     }

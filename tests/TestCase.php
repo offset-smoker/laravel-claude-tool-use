@@ -14,6 +14,9 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // Usage logs go nowhere unless a test captures them.
+        config(['claude.usage_log_channel' => 'null']);
+
         // Every test talks to the fixture transport, never to the network.
         $transport = new FixtureTransport;
         $this->app->instance(FixtureTransport::class, $transport);

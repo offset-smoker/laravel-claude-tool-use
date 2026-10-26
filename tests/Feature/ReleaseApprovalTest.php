@@ -106,7 +106,7 @@ it('releases the redacted text only after a person confirms', function () {
         ->and($pending->released_body)->toBe(
             'Pavilion B reserved for a family reunion on 2026-06-20 by [REDACTED: personal_identifier], '
             .'[REDACTED: personal_contact], [REDACTED: personal_contact]. Deposit of $50 received. '
-            .'The applicant noted that [REDACTED: medical] and asked for the accessible route to stay open.'
+            .'The applicant noted that [REDACTED: medical] and asked for the accessible route to stay open.',
         )
         ->and($pending->released_body)->not->toContain('555-0177');
 });

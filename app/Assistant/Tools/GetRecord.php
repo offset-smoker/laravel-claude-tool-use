@@ -41,10 +41,11 @@ final class GetRecord implements Tool
             'record_id' => ['required', 'string', 'regex:'.Record::ID_PATTERN],
         ]);
 
-        $record = Record::query()->find($input['record_id']);
+        $recordId = $input->string('record_id')->toString();
+        $record = Record::query()->find($recordId);
 
         if (! $record instanceof Record) {
-            throw new ToolInputInvalid("No record has the id {$input['record_id']}. Use search_records to find valid ids.");
+            throw new ToolInputInvalid("No record has the id {$recordId}. Use search_records to find valid ids.");
         }
 
         $content = implode("\n", [

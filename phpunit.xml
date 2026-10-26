@@ -11,6 +11,9 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <testsuite name="Architecture">
+            <directory>tests/Architecture</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
@@ -19,6 +22,13 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="ANTHROPIC_API_KEY" value=""/>
+        <env name="ANTHROPIC_AUTH_TOKEN" value=""/>
+        <env name="CLAUDE_MODEL" value="claude-opus-5-5"/>
+        <env name="CLAUDE_EFFORT" value="medium"/>
+        <env name="CLAUDE_MAX_TOKENS" value="16000"/>
+        <env name="CLAUDE_MAX_ITERATIONS" value="8"/>
+        <env name="CLAUDE_FALLBACKS" value="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
@@ -29,8 +39,5 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
-        <env name="PULSE_ENABLED" value="false"/>
-        <env name="TELESCOPE_ENABLED" value="false"/>
-        <env name="NIGHTWATCH_ENABLED" value="false"/>
     </php>
 </phpunit>

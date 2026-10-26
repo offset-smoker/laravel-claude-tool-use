@@ -24,7 +24,7 @@ final readonly class ToolRegistry
         ];
     }
 
-    /** @return list<array{name: string, description: string, inputSchema: array<string, mixed>, strict: bool}> */
+    /** @return list<array{name: string, description: string, inputSchema: array{type: 'object', properties: array<string, mixed>, required: list<string>, additionalProperties: false}, strict: true}> */
     public function definitions(): array
     {
         return array_values(array_map(static fn (Tool $tool): array => $tool->definition(), $this->tools));

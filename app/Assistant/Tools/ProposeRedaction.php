@@ -69,20 +69,23 @@ final class ProposeRedaction implements Tool
             'rationale' => ['required', 'string', 'max:1000'],
         ]);
 
-        $record = Record::query()->find($input['record_id']);
+        $recordId = $input->string('record_id')->toString();
+        $record = Record::query()->find($recordId);
 
         if (! $record instanceof Record) {
-            throw new ToolInputInvalid("No record has the id {$input['record_id']}.");
+            throw new ToolInputInvalid("No record has the id {$recordId}.");
         }
 
+        /** @var list<array{text: string, reason: string}> $validatedRedactions  shape checked by the rules above */
+        $validatedRedactions = $input->array('redactions');
+
         // The model read the record through UntrustedText, so it may quote "&lt;" where the record has "<".
-        /** @var list<array{text: string, reason: string}> $redactions */
         $redactions = array_map(
             static fn (array $redaction): array => [
                 'text' => htmlspecialchars_decode($redaction['text'], ENT_NOQUOTES),
                 'reason' => $redaction['reason'],
             ],
-            $input['redactions'],
+            $validatedRedactions,
         );
 
         foreach ($redactions as $index => $redaction) {
@@ -97,8 +100,7 @@ final class ProposeRedaction implements Tool
             throw new ToolInputInvalid("{$record->id} already has a proposal awaiting review ({$existing->id}). Do not propose it again.");
         }
 
-        /** @var string $rationale */
-        $rationale = $input['rationale'];
+        $rationale = $input->string('rationale')->toString();
 
         $pending = PendingRelease::query()->create([
             'record_id' => $record->id,

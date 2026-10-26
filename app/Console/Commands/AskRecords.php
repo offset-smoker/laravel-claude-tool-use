@@ -27,7 +27,7 @@ final class AskRecords extends Command
             'question' => ['required', 'string', 'min:3', 'max:'.UntrustedText::MAX_QUESTION_LENGTH],
         ]);
 
-        if ($errors !== [] || ! is_string($question)) {
+        if ($errors !== []) {
             $this->error(implode(' ', $errors));
 
             return self::INVALID;

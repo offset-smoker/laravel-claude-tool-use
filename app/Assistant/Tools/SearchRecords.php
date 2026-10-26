@@ -39,7 +39,7 @@ final class SearchRecords implements Tool
                 'properties' => [
                     'query' => [
                         'type' => 'string',
-                        'description' => 'Keywords to look for in record titles and text, for example "pothole Millrace". 2 to 200 characters.',
+                        'description' => 'Keywords to look for in record titles and text, for example "library hours". 2 to 200 characters.',
                     ],
                     'department' => [
                         'type' => 'string',
@@ -61,10 +61,10 @@ final class SearchRecords implements Tool
             'department' => ['required', 'string', Rule::in(['any', ...array_column(Department::cases(), 'value')])],
         ]);
 
-        /** @var string $query */
-        $query = $input['query'];
+        $query = $input->string('query')->toString();
+        $department = $input->string('department')->toString();
         $terms = array_slice(array_values(array_unique(array_filter(
-            preg_split('/\s+/', mb_strtolower($query)) ?: [],
+            mb_split('\s+', mb_strtolower($query)) ?: [],
             static fn (string $term): bool => mb_strlen($term) >= 2,
         ))), 0, self::MAX_TERMS);
 
@@ -73,7 +73,7 @@ final class SearchRecords implements Tool
         }
 
         $candidates = Record::query()
-            ->when($input['department'] !== 'any', fn (Builder $builder) => $builder->where('department', $input['department']))
+            ->when($department !== 'any', fn (Builder $builder) => $builder->where('department', $department))
             ->where(function (Builder $builder) use ($terms): void {
                 foreach ($terms as $term) {
                     $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%';

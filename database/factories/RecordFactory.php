@@ -20,7 +20,7 @@ final class RecordFactory extends Factory
     {
         return [
             'id' => sprintf('REC-%04d', fake()->unique()->numberBetween(5000, 9999)),
-            'title' => 'Synthetic record '.fake()->words(3, true),
+            'title' => 'Synthetic record '.fake()->sentence(3),
             'department' => fake()->randomElement(Department::cases()),
             'filed_on' => fake()->dateTimeBetween('2025-01-01', '2026-09-30'),
             'body' => fake()->paragraph(),
