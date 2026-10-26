@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use Anthropic\Client;
+use App\Assistant\ClaudeNotConfigured;
+use Illuminate\Support\Facades\File;
+
 it('asks for the server-side refusal fallback by default', function () {
     $transport = claude('pothole_final');
 
@@ -41,4 +45,29 @@ it('sends the API key only in the authorization header', function () {
     expect($request->getHeaderLine('authorization'))->toBe('Bearer test-key-not-real')
         ->and((string) $request->getBody())->not->toContain('test-key-not-real')
         ->and((string) $request->getUri())->not->toContain('test-key-not-real');
+});
+
+it('refuses to build a client, and so sends nothing, when no credentials exist anywhere', function () {
+    $emptyConfigDir = sys_get_temp_dir().'/claude-tool-use-no-profile-'.getmypid();
+    File::ensureDirectoryExists($emptyConfigDir);
+    $_ENV['ANTHROPIC_CONFIG_DIR'] = $emptyConfigDir;
+    $_ENV['ANTHROPIC_API_KEY'] = '';
+    $_ENV['ANTHROPIC_AUTH_TOKEN'] = '';
+    unset($_ENV['ANTHROPIC_PROFILE']);
+    config(['claude.api_key' => null]);
+    app()->forgetInstance(Client::class);
+
+    try {
+        app(Client::class);
+    } finally {
+        unset($_ENV['ANTHROPIC_CONFIG_DIR']);
+        File::deleteDirectory($emptyConfigDir);
+    }
+})->throws(ClaudeNotConfigured::class, 'No Claude credentials found.');
+
+it('builds a client from the configured key', function () {
+    config(['claude.api_key' => 'sk-ant-configured-in-test']);
+    app()->forgetInstance(Client::class);
+
+    expect(app(Client::class)->apiKey)->toBe('sk-ant-configured-in-test');
 });

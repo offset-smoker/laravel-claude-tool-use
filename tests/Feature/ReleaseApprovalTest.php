@@ -202,3 +202,35 @@ it('requires a reason to reject, and refuses to reject twice', function () {
         ->expectsOutputToContain('No proposal has the id not-a-proposal.')
         ->assertFailed();
 });
+
+it('shows a proposal as awaiting review, then the released text once approved', function () {
+    $pending = proposePavilionRelease();
+
+    $this->artisan('records:release', ['proposal' => $pending->id])
+        ->expectsOutput("Proposal {$pending->id} for REC-0004: pending")
+        ->expectsOutput('Awaiting review. Nothing has been released.')
+        ->assertSuccessful();
+
+    $this->artisan('records:approve', ['proposal' => $pending->id, '--reviewer' => 'Reviewer Sample', '--note' => 'Checked against the paper copy.'])
+        ->expectsConfirmation('Release REC-0004 with 4 redaction(s), approved by Reviewer Sample? This cannot be undone.', 'yes')
+        ->assertSuccessful();
+
+    $this->artisan('records:release', ['proposal' => $pending->id])
+        ->expectsOutput("Proposal {$pending->id} for REC-0004: approved")
+        ->expectsOutput('Note: Checked against the paper copy.')
+        ->expectsOutputToContain('by [REDACTED: personal_identifier], [REDACTED: personal_contact]')
+        ->assertSuccessful();
+});
+
+it('shows a rejected proposal without any released text', function () {
+    $pending = proposePavilionRelease();
+    $this->artisan('records:reject', ['proposal' => $pending->id, '--reviewer' => 'Reviewer Sample', '--reason' => 'Not yet.'])->assertSuccessful();
+
+    $this->artisan('records:release', ['proposal' => $pending->id])
+        ->expectsOutput("Proposal {$pending->id} for REC-0004: rejected")
+        ->expectsOutput('Note: Not yet.')
+        ->doesntExpectOutputToContain('Pavilion B')
+        ->assertSuccessful();
+
+    $this->artisan('records:release', ['proposal' => 'missing'])->assertFailed();
+});

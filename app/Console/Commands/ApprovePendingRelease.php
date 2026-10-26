@@ -88,6 +88,7 @@ final class ApprovePendingRelease extends Command
         }
 
         $this->info("Released {$approved->record_id} (proposal {$approved->id}), approved by ".ConsoleText::safe($reviewer).'.');
+        $this->line("See it again with: php artisan records:release {$approved->id}");
 
         return self::SUCCESS;
     }

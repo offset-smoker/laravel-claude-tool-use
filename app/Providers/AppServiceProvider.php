@@ -6,7 +6,9 @@ namespace App\Providers;
 
 use Anthropic\Beta\Messages\BetaOutputConfig\Effort;
 use Anthropic\Client;
+use Anthropic\Lib\Credentials\DefaultCredentials;
 use App\Assistant\CitationVerifier;
+use App\Assistant\ClaudeNotConfigured;
 use App\Assistant\CostEstimator;
 use App\Assistant\Tools\ToolRegistry;
 use App\Assistant\ToolUseLoop;
@@ -19,12 +21,19 @@ final class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // With no key configured the SDK resolves credentials itself
-        // (ANTHROPIC_AUTH_TOKEN, an `ant auth login` profile, and so on).
+        // Without a key, fall back to the SDK's other credential sources
+        // (ANTHROPIC_AUTH_TOKEN, an `ant auth login` profile, workload
+        // identity). With none of them, stop before any request is sent.
         $this->app->singleton(Client::class, static function (): Client {
             $key = config('claude.api_key');
 
-            return is_string($key) && $key !== '' ? new Client(apiKey: $key) : new Client;
+            if (is_string($key) && $key !== '') {
+                return new Client(apiKey: $key);
+            }
+
+            $credentials = DefaultCredentials::resolve() ?? throw ClaudeNotConfigured::noCredentials();
+
+            return new Client(credentials: $credentials);
         });
 
         $this->app->singleton(CostEstimator::class, static function (): CostEstimator {
